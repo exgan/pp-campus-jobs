@@ -1,0 +1,7 @@
+"__pycache__/" 
+"*.pyc" 
+"# MySQL backups" 
+"*.sql" 
+"*.dump"
+"*.log"
+"*.pot"
