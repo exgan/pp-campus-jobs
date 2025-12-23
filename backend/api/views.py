@@ -1,18 +1,34 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .serializers import *
 
 
+class IsEmployerOrReadOnly(permissions.BasePermission):
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        return hasattr(request.user, 'employer_profile')
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        return obj.employer.user == request.user
+
+
 class VacancyViewSet(viewsets.ModelViewSet):
     queryset = Vacancy.objects.filter(is_active=True)
     serializer_class = VacancySerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsEmployerOrReadOnly]
 
     def get_queryset(self):
         queryset = Vacancy.objects.filter(is_active=True)
 
-        # Фильтрация по параметрам
+        # Фильтрация
         vacancy_type = self.request.query_params.get('type')
         category = self.request.query_params.get('category')
         search = self.request.query_params.get('search')
@@ -26,7 +42,18 @@ class VacancyViewSet(viewsets.ModelViewSet):
 
         return queryset
 
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def perform_create(self, serializer):
+        if hasattr(self.request.user, 'employer_profile'):
+            serializer.save(employer=self.request.user.employer_profile)
+        else:
+            raise PermissionDenied("Только работодатели могут создавать вакансии")
+
+    @action(
+        detail=True,
+        methods=['post'],
+        permission_classes=[permissions.IsAuthenticated],
+        serializer_class=ApplicationCreateSerializer
+    )
     def apply(self, request, pk=None):
         vacancy = self.get_object()
 
@@ -47,13 +74,14 @@ class VacancyViewSet(viewsets.ModelViewSet):
             )
 
         # Создаем отклик
-        serializer = ApplicationCreateSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             application = serializer.save(
                 student=student_profile,
                 vacancy=vacancy,
                 status='pending'
             )
+            from .serializers import ApplicationSerializer
             return Response(
                 ApplicationSerializer(application).data,
                 status=status.HTTP_201_CREATED

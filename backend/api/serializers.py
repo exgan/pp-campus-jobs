@@ -40,10 +40,14 @@ class VacancySerializer(serializers.ModelSerializer):
     employer = EmployerProfileSerializer(read_only=True)
     category = CategorySerializer(read_only=True)
     skills = SkillSerializer(many=True, read_only=True)
+    apply_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Vacancy
         fields = '__all__'
+
+    def get_apply_url(self, obj):
+        return f'/api/vacancies/{obj.id}/apply/'
 
 
 class ApplicationSerializer(serializers.ModelSerializer):
@@ -53,13 +57,13 @@ class ApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
         fields = '__all__'
-        read_only_fields = ['applied_at', 'updated_at']
+        read_only_fields = ['student', 'vacancy', 'applied_at', 'updated_at', 'status']
 
 
 class ApplicationCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
-        fields = ['vacancy', 'resume_url', 'cover_letter']
+        fields = ['resume_url', 'cover_letter']
 
 
 class InterviewSerializer(serializers.ModelSerializer):
