@@ -1,0 +1,78 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Настройки профиля - Campus Jobs</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">Campus Jobs</a>
+            <div class="navbar-nav">
+                <a href="#" id="back-to-profile" class="nav-link">← Назад в профиль</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mt-4">
+        <h1>Настройки профиля</h1>
+        
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-body">
+                        <div id="profile-form-container">
+                            <div class="text-center">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Загрузка...</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <button id="cancel-btn" class="btn btn-outline-secondary">
+                                ← Ввернуться в профиль
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/auth.js' %}"></script>
+    <script src="{% static 'js/profile.js' %}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProfileSettings();
+            
+            // Обработчик кнопки отмены
+            document.getElementById('cancel-btn').addEventListener('click', function() {
+                goBackToProfile();
+            });
+            
+            // Обработчик ссылки в навигации
+            document.getElementById('back-to-profile').addEventListener('click', function(e) {
+                e.preventDefault();
+                goBackToProfile();
+            });
+        });
+        
+        function goBackToProfile() {
+            const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}');
+            if (userInfo.role === 'student') {
+                window.location.href = '/student-dashboard/';
+            } else if (userInfo.role === 'employer') {
+                window.location.href = '/employer-dashboard/';
+            } else {
+                window.location.href = '/';
+            }
+        }
+    </script>
+</body>
+</html>

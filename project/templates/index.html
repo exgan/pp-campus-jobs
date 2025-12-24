@@ -1,0 +1,80 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Jobs</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">Campus Jobs</a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse justify-content-between" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Вакансии</a>
+                    </li>
+                    <li class="nav-item" id="student-dashboard-link" style="display: none;">
+                        <a class="nav-link" href="/student-dashboard/">Кабинет студента</a>
+                    </li>
+                    <li class="nav-item" id="employer-dashboard-link" style="display: none;">
+                        <a class="nav-link" href="/employer-dashboard/">Кабинет работодателя</a>
+                    </li>
+                    <li class="nav-item" id="applications-link" style="display: none;">
+                        <a class="nav-link" href="/applications/">Заявки</a>
+                    </li>
+                </ul>
+                <div class="navbar-nav mx-auto">
+                    <span id="user-info" class="nav-link text-white" style="display: none;"></span>
+                </div>
+                <div class="navbar-nav">
+                    <button id="logout-btn" class="btn btn-outline-light btn-sm my-1" style="display: none;">Выйти</button>
+                    <a href="/login/" id="login-btn" class="btn btn-light btn-sm my-1">Войти</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mt-4" id="main-content">
+        <div class="row">
+            <div class="col-md-12">
+                <h1>Поиск вакансий и стажировок</h1>
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <form id="search-form" class="row g-3">
+                            <div class="col-md-6">
+                                <input type="text" class="form-control" id="search-input" placeholder="Поиск по названию или описанию...">
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-select" id="type-filter">
+                                    <option value="">Все типы</option>
+                                    <option value="work">Работа</option>
+                                    <option value="internship">Стажировка</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <button type="submit" class="btn btn-primary w-100">Найти</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <div id="vacancies-container">
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/main.js' %}"></script>
+    <script src="{% static 'js/auth.js' %}"></script>
+</body>
+</html>
