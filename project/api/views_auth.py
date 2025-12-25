@@ -1,6 +1,7 @@
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import generics, permissions, status
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from rest_framework.authentication import TokenAuthentication
@@ -9,38 +10,58 @@ from django.contrib.auth.models import User
 from .serializers import StudentProfile, EmployerProfile, Skill
 
 
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
 @authentication_classes([])
 def register(request):
+    print("=== REGISTER REQUEST ===")
+    print("Метод:", request.method)
+    print("Данные:", request.data)
+    print("Заголовки:", dict(request.headers))
+    
     username = request.data.get('username')
     email = request.data.get('email')
     password = request.data.get('password')
     role = request.data.get('role', 'student')
     
+    print(f"Полученные данные: username={username}, email={email}, role={role}")
+    
     # Валидация
     if not username or not email or not password:
+        print("Ошибка: не все поля заполнены")
         return Response(
             {'error': 'Все поля обязательны'},
             status=status.HTTP_400_BAD_REQUEST
         )
     
     if User.objects.filter(username=username).exists():
+        print(f"Ошибка: пользователь {username} уже существует")
         return Response(
             {'error': 'Пользователь с таким именем уже существует'},
             status=status.HTTP_400_BAD_REQUEST
         )
     
+    if User.objects.filter(email=email).exists():
+        print(f"Ошибка: email {email} уже используется")
+        return Response(
+            {'error': 'Пользователь с таким email уже существует'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
     # Создаем пользователя
     try:
+        print(f"Создаем пользователя: {username}")
         user = User.objects.create_user(
             username=username,
             email=email,
             password=password
         )
+        print(f"Пользователь создан: {user.id}")
         
         # Создаем профиль в зависимости от роли
         if role == 'student':
+            print("Создаем профиль студента")
             StudentProfile.objects.create(
                 user=user,
                 first_name=request.data.get('first_name', ''),
@@ -48,29 +69,48 @@ def register(request):
                 faculty=request.data.get('faculty', ''),
                 course=int(request.data.get('course', 1))
             )
+            print("Профиль студента создан")
         elif role == 'employer':
+            print("Создаем профиль работодателя")
             EmployerProfile.objects.create(
                 user=user,
                 company_name=request.data.get('company_name', ''),
                 contact_person=request.data.get('contact_person', ''),
-                phone=request.data.get('phone', '')
+                phone=request.data.get('phone', ''),
+                first_name=request.data.get('first_name', ''),  # Добавим эти поля
+                last_name=request.data.get('last_name', '')
             )
+            print("Профиль работодателя создан")
+        else:
+            print(f"Неизвестная роль: {role}")
         
         # Создаем токен
+        print("Создаем токен")
         token = Token.objects.create(user=user)
         
-        return Response({
+        response_data = {
             'message': 'Регистрация успешна',
             'token': token.key,
             'user_id': user.id,
             'username': user.username,
+            'email': user.email,
             'role': role
-        }, status=status.HTTP_201_CREATED)
+        }
+        
+        print(f"Успешная регистрация: {response_data}")
+        return Response(response_data, status=status.HTTP_201_CREATED)
         
     except Exception as e:
+        print(f"Ошибка при регистрации: {str(e)}")
+        print(f"Тип ошибки: {type(e)}")
+        import traceback
+        traceback.print_exc()
+        
         # Если ошибка, удаляем пользователя
         if 'user' in locals():
+            print(f"Удаляем пользователя {user.username} из-за ошибки")
             user.delete()
+        
         return Response(
             {'error': f'Ошибка регистрации: {str(e)}'},
             status=status.HTTP_400_BAD_REQUEST

@@ -258,27 +258,27 @@ async function loadEmployerDashboard() {
             displayEmployerProfile(userData);
         }
         
-        // Загружаем ВСЕ вакансии работодателя
-        const vacanciesResponse = await fetch(`${API_BASE_URL}/vacancies/?all=true&my=true`, {
+        // Загружаем свои вакансии работодателя
+        const vacanciesResponse = await fetch(`${API_BASE_URL}/vacancies/?my=true`, {
             headers: getAuthHeaders()
         });
-        
+
         if (vacanciesResponse.ok) {
             const vacancies = await vacanciesResponse.json();
             displayEmployerVacancies(vacancies);
         } else {
-            // Если параметр all не работает, пробуем получить все вакансии
+            // Если параметр my=true не работает, фильтруем на клиенте
             const allVacanciesResponse = await fetch(`${API_BASE_URL}/vacancies/`, {
                 headers: getAuthHeaders()
             });
             
             if (allVacanciesResponse.ok) {
                 const allVacancies = await allVacanciesResponse.json();
+                const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}');
+                
                 // Фильтруем вакансии текущего работодателя
                 const myVacancies = allVacancies.filter(v => 
-                    v.employer && 
-                    (v.employer.user?.username === userData.username || 
-                     v.employer.user?.id === userData.id)
+                    v.employer && v.employer.user && v.employer.user.username === userInfo.username
                 );
                 displayEmployerVacancies(myVacancies);
             } else {
@@ -305,24 +305,30 @@ function displayEmployerProfile(user) {
     const profileDiv = document.getElementById('employer-profile');
     
     if (user && user.username) {
-        profileDiv.innerHTML = `
+        let html = `
             <p><strong>Имя пользователя:</strong> ${user.username}</p>
-            <p><strong>Роль:</strong> ${user.role === 'employer' ? 'Работодатель' : user.role}</p>
+            <p><strong>Роль:</strong> Работодатель</p>
             ${user.email ? `<p><strong>Email:</strong> ${user.email}</p>` : ''}
         `;
         
         if (user.employer_profile) {
             const profile = user.employer_profile;
-            profileDiv.innerHTML += `
+            html += `
+                <p><strong>Имя:</strong> ${profile.first_name || ''}</p>
+                <p><strong>Фамилия:</strong> ${profile.last_name || ''}</p>
                 <p><strong>Компания:</strong> ${profile.company_name || ''}</p>
                 <p><strong>Отдел:</strong> ${profile.department || ''}</p>
                 <p><strong>Контактное лицо:</strong> ${profile.contact_person || ''}</p>
                 <p><strong>Телефон:</strong> ${profile.phone || ''}</p>
                 ${profile.description ? `<p><strong>Описание:</strong> ${profile.description}</p>` : ''}
             `;
+        } else {
+            html += '<p><em>Профиль работодателя не заполнен</em></p>';
         }
+        
+        profileDiv.innerHTML = html;
     } else {
-        profileDiv.innerHTML = '<p>Профиль работодателя не найден</p>';
+        profileDiv.innerHTML = '<p>Профиль не найден</p>';
     }
 }
 

@@ -44,20 +44,30 @@ class VacancyViewSet(viewsets.ModelViewSet):
         queryset = Vacancy.objects.all()
         user = self.request.user
         
-        # Возвращаем вакансию если пользователь имеет доступ
-        if self.action == 'retrieve':
-            return queryset
+        # Параметр ?my=true для работодателей (показать только мои вакансии)
+        my_vacancies = self.request.query_params.get('my')
         
-        # Авторизованные пользователи видят все вакансии
-        if user.is_authenticated:
-            # Работодатели видят свои неактивные вакансии
-            if hasattr(user, 'employer_profile'):
-                return queryset
-            # Студенты и другие видят только активные
-            else:
-                return queryset.filter(is_active=True)
-        else:
+        # Неавторизованные пользователи видят только активные вакансии
+        if not user.is_authenticated:
             return queryset.filter(is_active=True)
+        
+        # Если работодатель запрашивает только свои вакансии
+        if my_vacancies and hasattr(user, 'employer_profile'):
+            return queryset.filter(employer=user.employer_profile)
+        
+        if hasattr(user, 'employer_profile'):
+            # Работодатели видят все свои вакансии
+            if not self.request.query_params.get('show_all'):
+                return queryset.filter(
+                    Q(is_active=True) | 
+                    Q(employer=user.employer_profile, is_active=False)
+                )
+            return queryset
+        elif hasattr(user, 'student_profile'):
+            # Студенты видят только активные вакансии
+            return queryset.filter(is_active=True)
+        else:
+            return queryset
     
     def get_object(self):
         # Проверки доступа к неактивным вакансиям
@@ -160,17 +170,21 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         user = self.request.user
         queryset = Application.objects.all()
         
-        # Фильтрация по вакансии
+        # Фильтрация по вакансии (если параметр передан)
         vacancy_id = self.request.query_params.get('vacancy')
         if vacancy_id:
             try:
-                queryset = queryset.filter(vacancy_id=int(vacancy_id))
+                vacancy_id_int = int(vacancy_id)
+                queryset = queryset.filter(vacancy_id=vacancy_id_int)
             except (ValueError, TypeError):
-                pass  # Игнорируем неверный параметр
+                pass
         
+        # Фильтруем по пользователю
         if hasattr(user, 'student_profile'):
+            # Студент видит свои заявки
             return queryset.filter(student=user.student_profile)
         elif hasattr(user, 'employer_profile'):
+            # Работодатель видит заявки на свои вакансии
             return queryset.filter(vacancy__employer=user.employer_profile)
         
         return Application.objects.none()
