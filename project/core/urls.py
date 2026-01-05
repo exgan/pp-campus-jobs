@@ -16,6 +16,7 @@ urlpatterns = [
     path('applications/', views.applications_view, name='applications'),
     path('login/', views.login_view, name='login'),
     path('register/', views.register_view, name='register'),
+    path('notifications/', views.notifications_view, name='notifications'),
 ]
 
 if settings.DEBUG:

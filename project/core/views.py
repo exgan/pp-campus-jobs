@@ -30,3 +30,6 @@ def login_view(request):
 # Страница регистрации
 def register_view(request):
     return render(request, 'register.html')
+
+def notifications_view(request):
+    return render(request, 'notifications.html')

@@ -197,7 +197,15 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # Автоматически устанавливаем студента при создании заявки
         if hasattr(self.request.user, 'student_profile'):
-            serializer.save(student=self.request.user.student_profile)
+            application = serializer.save(student=self.request.user.student_profile)
+
+            # Создаем уведомление для работодателя
+            Notification.objects.create(
+                user=application.vacancy.employer.user,
+                title='Новая заявка',
+                message=f'Студент {application.student.first_name} откликнулся на вакансию "{application.vacancy.title}"',
+                notification_type='new_application'
+            )
         else:
             raise permissions.PermissionDenied("Только студенты могут создавать заявки")
     
@@ -279,6 +287,60 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         )
         
         return Response(ReviewSerializer(review).data, status=status.HTTP_201_CREATED)
+    
+    @action(detail=True, methods=['post'])
+    def create_notification(self, request, pk=None):
+        application = self.get_object()
+        
+        # Проверяем, что текущий пользователь имеет доступ
+        if not (request.user == application.vacancy.employer.user or 
+                request.user == application.student.user):
+            return Response(
+                {'error': 'Нет доступа'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Определяем, кому отправлять уведомление
+        target_user = (application.student.user if request.user == application.vacancy.employer.user 
+                    else application.vacancy.employer.user)
+        
+        notification = Notification.objects.create(
+            user=target_user,
+            title=request.data.get('title', 'Уведомление'),
+            message=request.data.get('message', ''),
+            notification_type=request.data.get('notification_type', 'system')
+        )
+        
+        return Response(NotificationSerializer(notification).data)
+
+
+class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = NotificationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    # Пользователь видит только свои уведомления, отсортированные по дате
+    def get_queryset(self):
+        return Notification.objects.filter(user=self.request.user).order_by('-created_at')
+    
+    # Получить количество непрочитанных уведомлений
+    @action(detail=False, methods=['get'])
+    def unread_count(self, request):
+        count = Notification.objects.filter(user=request.user, is_read=False).count()
+        return Response({'count': count})
+    
+    # Пометить уведомление как прочитанное
+    @action(detail=True, methods=['post'])
+    def mark_as_read(self, request, pk=None):
+        notification = self.get_object()
+        notification.is_read = True
+        notification.save()
+        return Response({'status': 'marked as read'})
+    
+    # Пометить все уведомления как прочитанные
+    @action(detail=False, methods=['post'])
+    def mark_all_as_read(self, request):
+        Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+        return Response({'status': 'all marked as read'})
 
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):

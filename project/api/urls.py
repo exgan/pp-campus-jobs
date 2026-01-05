@@ -9,6 +9,7 @@ router.register(r'applications', views.ApplicationViewSet, basename='application
 router.register(r'categories', views.CategoryViewSet)
 router.register(r'skills', views.SkillViewSet)
 router.register(r'student-profiles', views.StudentProfileViewSet, basename='studentprofile')
+router.register(r'notifications', views.NotificationViewSet, basename='notification')
 
 urlpatterns = [
     path('', include(router.urls)),
